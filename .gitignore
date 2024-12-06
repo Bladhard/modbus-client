@@ -1,0 +1,9 @@
+modbus-client/
+
+__pycache__
+
+*.pyc
+*.log
+
+.vscode
+test/
