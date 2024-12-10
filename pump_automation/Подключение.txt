@@ -1,0 +1,25 @@
+sudo apt install -y python3-venv
+python3 -m venv modbus-client
+source modbus-client/bin/activate
+pip install -r requirements.txt
+-------------------------------------------------------------------------------------
+
+Добавить в папку start_script.sh чтобы сразу активировать переменную среду
+
+Сделать файл исполняемым:
+chmod +x /home/aph/modbus-client/start_script.sh
+
+
+
+-------------------------------------------------------------------------------------
+Запуск в фоновом режиме с помощью PM2
+
+pm2 start /home/aph/modbus-client/start_script.sh --name modbus_pump
+
+pm2 list
+
+pm2 log modbus_pump
+
+pm2 stop modbus_pump
+pm2 restart modbus_pump
+pm2 delete modbus_pump

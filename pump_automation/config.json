@@ -1,0 +1,106 @@
+{
+    "modbus_servers": [
+        "40.0.6.51"
+    ],
+    "modbus_port": 502,
+    "request_settings": [
+        {
+            "address": 100,
+            "count": 4
+        },
+        {
+            "address": 109,
+            "count": 10
+        },
+        {
+            "address": 120,
+            "count": 28
+        },
+        {
+            "address": 10,
+            "count": 1
+        },
+        {
+            "address": 12,
+            "count": 1
+        },
+        {
+            "address": 18,
+            "count": 1
+        },
+        {
+            "address": 20,
+            "count": 1
+        },
+        {
+            "address": 22,
+            "count": 1
+        },
+        {
+            "address": 24,
+            "count": 1
+        },
+        {
+            "address": 26,
+            "count": 1
+        },
+        {
+            "address": 28,
+            "count": 1
+        },
+        {
+            "address": 30,
+            "count": 1
+        },
+        {
+            "address": 32,
+            "count": 1
+        },
+        {
+            "address": 34,
+            "count": 1
+        },
+        {
+            "address": 36,
+            "count": 1
+        },
+        {
+            "address": 38,
+            "count": 1
+        },
+        {
+            "address": 40,
+            "count": 1
+        },
+        {
+            "address": 42,
+            "count": 1
+        },
+        {
+            "address": 44,
+            "count": 1
+        },
+        {
+            "address": 46,
+            "count": 1
+        },
+        {
+            "address": 48,
+            "count": 1
+        },
+        {
+            "address": 50,
+            "count": 1
+        }
+    ],
+    "server_url": "https://eco-system.tech/chegem/api/pump/update",
+    "server_url_alarm": "https://eco-system.tech/soldar/api/power/updateAlarms",
+    "headers": {
+        "x-access-token": "1000001",
+        "Content-Type": "application/json"
+    },
+    "log_file": "modbus_data.log",
+    "log_level": "INFO",
+    "polling_interval": 600,
+    "machine_interval": 5
+}
