@@ -1,0 +1,80 @@
+{
+    "modbus_servers": [
+        "192.168.75.200",
+        "192.168.75.201",
+        "192.168.75.202",
+        "192.168.75.203",
+        "192.168.75.204",
+        "192.168.75.205",
+        "192.168.75.206",
+        "192.168.75.207",
+        "192.168.75.208",
+        "192.168.75.209",
+        "192.168.75.210"
+    ],
+    "modbus_port": 502,
+    "request_settings": [
+        {
+            "address": 14,
+            "count": 1
+        },
+        {
+            "address": 15,
+            "count": 1
+        },
+        {
+            "address": 65,
+            "count": 4
+        },
+        {
+            "address": 72,
+            "count": 2
+        },
+        {
+            "address": 75,
+            "count": 25
+        },
+        {
+            "address": 101,
+            "count": 9
+        },
+        {
+            "address": 112,
+            "count": 1
+        },
+        {
+            "address": 116,
+            "count": 20
+        },
+        {
+            "address": 138,
+            "count": 2
+        },
+        {
+            "address": 142,
+            "count": 1
+        },
+        {
+            "address": 160,
+            "count": 4
+        },
+        {
+            "address": 170,
+            "count": 2
+        },
+        {
+            "address": 184,
+            "count": 4
+        }
+    ],
+    "server_url": "https://eco-system.tech/soldar/api/power/updateState",
+    "server_url_alarm": "https://eco-system.tech/soldar/api/power/updateAlarms",
+    "headers": {
+        "x-access-token": "1000001",
+        "Content-Type": "application/json"
+    },
+    "log_file": "modbus_data.log",
+    "log_level": "INFO",
+    "polling_interval": 120,
+    "machine_interval": 5
+}

@@ -152,7 +152,7 @@ def read_modbus_data(client, addresses, retries=3, delay=5, ip=None):
                         collected_alarm["IP"] = ip
 
                     if address in valid_addresses:
-                        response = client.read_discrete_inputs(address=100, count=16)
+                        response = client.read_discrete_inputs(address=120, count=16)
                         bits = response.bits
                         print("Прочитанные входы:", bits)
                         response_bits = client.read_coils(address=address, count=16)
