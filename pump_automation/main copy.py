@@ -7,7 +7,7 @@ import time
 from datetime import datetime
 import requests
 import json
-from bit import valid_addresses, register_bit_labels
+from bit import register_bit_labels, valid_addresses
 
 CSV_FILE = "modbus_data.csv"
 # "127.0.0.1"
@@ -152,27 +152,18 @@ def read_modbus_data(client, addresses, retries=3, delay=5, ip=None):
                         collected_alarm["IP"] = ip
 
                     if address in valid_addresses:
-                        response_bits = client.read_coils(address=address, count=16)
-                        bits = response_bits.bits[
-                            :16
-                        ]  # Массив значений битов (True/False)
-                        # print(f"Значение регистра R{address:03d}: {bits}")
-                        # print(f"Значение регистра R{address:03d}: {bits:016b}")
-                        existing_alarms = {}
+                        value = response.registers[0]
+                        print(f"Значение регистра R{address:03d}: {value:016b}")
+
                         # Парсинг битовых данных
                         for i, bit_label in enumerate(register_bit_labels[address]):
-                            if i < len(
-                                bits
-                            ):  # Проверяем, существует ли бит с таким индексом
-                                bit_value = bits[i]
-                                # print(i, bit_label, bit_value)
-                                existing_alarms[bit_label] = (
-                                    "Сообщение" if bit_value else "ОК"
-                                )
-                        # Вывод результатов
-                        # Добавляем данные из existing_alarms в collected_alarm
-                        for label, status in existing_alarms.items():
-                            collected_alarm[label] = status
+                            bit_value = (
+                                value >> (15 - i)
+                            ) & 0x01  # Сдвиг и маскирование
+                            collected_alarm[f"{bit_label}"] = (
+                                "Сообщение" if bit_value else "ОК"
+                            )
+
                     else:
                         # Чтение регистров и добавление в словарь для остальных адресов
                         for i, reg_value in enumerate(response.registers):

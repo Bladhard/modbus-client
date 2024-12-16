@@ -7,7 +7,7 @@ import time
 from datetime import datetime
 import requests
 import json
-from bit import valid_addresses, register_bit_labels
+
 
 CSV_FILE = "modbus_data.csv"
 # "127.0.0.1"
@@ -151,28 +151,59 @@ def read_modbus_data(client, addresses, retries=3, delay=5, ip=None):
                         collected_data["IP"] = ip
                         collected_alarm["IP"] = ip
 
-                    if address in valid_addresses:
-                        response_bits = client.read_coils(address=address, count=16)
-                        bits = response_bits.bits[
-                            :16
-                        ]  # Массив значений битов (True/False)
-                        # print(f"Значение регистра R{address:03d}: {bits}")
-                        # print(f"Значение регистра R{address:03d}: {bits:016b}")
-                        existing_alarms = {}
+                    if address == 14 or address == 15:
+                        # Определяем битовые метки для адресов 14 и 15
+                        bit_labels = {
+                            14: [
+                                440,
+                                439,
+                                438,
+                                437,
+                                436,
+                                435,
+                                434,
+                                433,
+                                432,
+                                431,
+                                430,
+                                429,
+                                428,
+                                427,
+                                426,
+                                425,
+                            ],
+                            15: [
+                                456,
+                                455,
+                                454,
+                                453,
+                                452,
+                                451,
+                                450,
+                                449,
+                                448,
+                                447,
+                                446,
+                                445,
+                                444,
+                                443,
+                                442,
+                                441,
+                            ],
+                        }
+
+                        value = response.registers[0]
+                        print(f"Значение регистра R{address:03d}: {value:016b}")
+
                         # Парсинг битовых данных
-                        for i, bit_label in enumerate(register_bit_labels[address]):
-                            if i < len(
-                                bits
-                            ):  # Проверяем, существует ли бит с таким индексом
-                                bit_value = bits[i]
-                                # print(i, bit_label, bit_value)
-                                existing_alarms[bit_label] = (
-                                    "Сообщение" if bit_value else "ОК"
-                                )
-                        # Вывод результатов
-                        # Добавляем данные из existing_alarms в collected_alarm
-                        for label, status in existing_alarms.items():
-                            collected_alarm[label] = status
+                        for i, bit_label in enumerate(bit_labels[address]):
+                            bit_value = (
+                                value >> (15 - i)
+                            ) & 0x01  # Сдвиг и маскирование
+                            collected_alarm[f"{bit_label}"] = (
+                                "Сообщение" if bit_value else "ОК"
+                            )
+
                     else:
                         # Чтение регистров и добавление в словарь для остальных адресов
                         for i, reg_value in enumerate(response.registers):
@@ -199,11 +230,11 @@ def read_modbus_data(client, addresses, retries=3, delay=5, ip=None):
             )
 
     # После опроса всех адресов отправляем собранные данные
-    # print("Collected Data: ", collected_data)
-    # print("Collected Alarm: ", collected_alarm)
+    print("Collected Data: ", collected_data)
+    print("Collected Alarm: ", collected_alarm)
     # Отправка данных на сервер
-    send_request(data_server, collected_data)
-    send_request(data_server, collected_alarm)
+    # send_request(data_server, collected_data)
+    # send_request(alarm_server, collected_alarm)
 
 
 # Функция для работы с каждым IP-адресом
@@ -255,6 +286,7 @@ def process_modbus_data():
                             logger.info(
                                 f"Запланировано чтение {count} регистров с адреса {address} с {ip}"
                             )
+
                         # Опрос всех адресов за раз
                         read_modbus_data(
                             client,
@@ -269,7 +301,7 @@ def process_modbus_data():
 
                     except Exception as e:
                         logger.error(f"Ошибка при опросе {ip}: {e}.")
-                        logger.info("Попробуем переподключиться в следующий цикл.")
+                        logger.info(f"Попробуем переподключиться в следующий цикл.")
                         clients[ip] = None  # Помечаем клиент как недоступный
 
             # Пауза между полными циклами опроса
