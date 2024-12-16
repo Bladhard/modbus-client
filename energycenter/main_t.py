@@ -230,11 +230,11 @@ def read_modbus_data(client, addresses, retries=3, delay=5, ip=None):
             )
 
     # После опроса всех адресов отправляем собранные данные
-    # print("Collected Data: ", collected_data)
-    # print("Collected Alarm: ", collected_alarm)
+    print("Collected Data: ", collected_data)
+    print("Collected Alarm: ", collected_alarm)
     # Отправка данных на сервер
-    send_request(data_server, collected_data)
-    send_request(alarm_server, collected_alarm)
+    # send_request(data_server, collected_data)
+    # send_request(alarm_server, collected_alarm)
 
 
 # Функция для работы с каждым IP-адресом
@@ -301,7 +301,7 @@ def process_modbus_data():
 
                     except Exception as e:
                         logger.error(f"Ошибка при опросе {ip}: {e}.")
-                        logger.info("Попробуем переподключиться в следующий цикл.")
+                        logger.info(f"Попробуем переподключиться в следующий цикл.")
                         clients[ip] = None  # Помечаем клиент как недоступный
 
             # Пауза между полными циклами опроса
