@@ -8,6 +8,8 @@ from datetime import datetime
 import requests
 import json
 
+from tg_alarm import notify_server
+
 
 CSV_FILE = "modbus_data.csv"
 # "127.0.0.1"
@@ -24,7 +26,6 @@ def load_config(config_file="config.json"):
         return None
 
 
-# Настройка логирования
 # Настройка логирования
 def setup_logging(log_file, log_level):
     """Настройка логгера с поддержкой ротации логов."""
@@ -230,11 +231,11 @@ def read_modbus_data(client, addresses, retries=3, delay=5, ip=None):
             )
 
     # После опроса всех адресов отправляем собранные данные
-    print("Collected Data: ", collected_data)
-    print("Collected Alarm: ", collected_alarm)
+    # print("Collected Data: ", collected_data)
+    # print("Collected Alarm: ", collected_alarm)
     # Отправка данных на сервер
-    # send_request(data_server, collected_data)
-    # send_request(alarm_server, collected_alarm)
+    send_request(data_server, collected_data)
+    send_request(alarm_server, collected_alarm)
 
 
 # Функция для работы с каждым IP-адресом
@@ -301,11 +302,12 @@ def process_modbus_data():
 
                     except Exception as e:
                         logger.error(f"Ошибка при опросе {ip}: {e}.")
-                        logger.info(f"Попробуем переподключиться в следующий цикл.")
+                        logger.info("Попробуем переподключиться в следующий цикл.")
                         clients[ip] = None  # Помечаем клиент как недоступный
 
             # Пауза между полными циклами опроса
             logger.info("Ожидание следующего цикла...")
+            notify_server()
             time.sleep(config["polling_interval"])  # Задержка между циклами
 
     except KeyboardInterrupt:

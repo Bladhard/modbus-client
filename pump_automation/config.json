@@ -99,8 +99,12 @@
         "x-access-token": "1000001",
         "Content-Type": "application/json"
     },
+    "API_URL_ALARM": "http://185.149.146.250:8050/update_status",
+    "PROGRAM_NAME": "Pump_Chegem",
+    "API_KEY": "Pump_Chegem",
     "log_file": "modbus_data.log",
     "log_level": "INFO",
+    "max_read_duration": 30,
     "polling_interval": 180,
     "machine_interval": 5
 }

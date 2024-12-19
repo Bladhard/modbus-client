@@ -8,6 +8,7 @@ from datetime import datetime
 import requests
 import json
 from bit import valid_addresses, register_bit_labels
+from tg_alarm import notify_server
 
 CSV_FILE = "modbus_data.csv"
 # "127.0.0.1"
@@ -24,7 +25,6 @@ def load_config(config_file="config.json"):
         return None
 
 
-# Настройка логирования
 # Настройка логирования
 def setup_logging(log_file, log_level):
     """Настройка логгера с поддержкой ротации логов."""
@@ -152,9 +152,6 @@ def read_modbus_data(client, addresses, retries=3, delay=5, ip=None):
                         collected_alarm["IP"] = ip
 
                     if address in valid_addresses:
-                        response = client.read_discrete_inputs(address=120, count=16)
-                        bits = response.bits
-                        print("Прочитанные входы:", bits)
                         response_bits = client.read_coils(address=address, count=16)
                         bits = response_bits.bits[
                             :16
@@ -203,10 +200,10 @@ def read_modbus_data(client, addresses, retries=3, delay=5, ip=None):
 
     # После опроса всех адресов отправляем собранные данные
     # print("Collected Data: ", collected_data)
-    print("Collected Alarm: ", collected_alarm)
+    # print("Collected Alarm: ", collected_alarm)
     # Отправка данных на сервер
-    # send_request(data_server, collected_data)
-    # send_request(data_server, collected_alarm)
+    send_request(data_server, collected_data)
+    send_request(data_server, collected_alarm)
 
 
 # Функция для работы с каждым IP-адресом
@@ -251,13 +248,30 @@ def process_modbus_data():
                         # Список адресов и количества регистров для опроса
                         addresses_to_read = []
 
-                        for request in config["request_settings"]:
-                            address = request["address"]
-                            count = request["count"]
-                            addresses_to_read.append((address, count))
-                            logger.info(
-                                f"Запланировано чтение {count} регистров с адреса {address} с {ip}"
+                        try:
+                            for request in config["request_settings"]:
+                                address = request.get("address")
+                                count = request.get("count")
+
+                                if address is None or count is None:
+                                    logger.error(f"Некорректный запрос: {request}")
+                                    continue
+
+                                addresses_to_read.append((address, count))
+                                logger.info(
+                                    f"Запланировано чтение {count} регистров с адреса {address} с {ip}"
+                                )
+                        except Exception as e:
+                            logger.error(
+                                f"Ошибка при подготовке адресов для чтения: {e}"
                             )
+
+                        if not client.is_socket_open():
+                            logger.warning(f"Соединение с {ip} потеряно. Пропуск.")
+                            continue
+
+                        start_time = time.time()
+                        max_duration = config["max_read_duration"]
                         # Опрос всех адресов за раз
                         read_modbus_data(
                             client,
@@ -266,6 +280,10 @@ def process_modbus_data():
                             delay=config.get("retry_delay", 5),
                             ip=ip,
                         )
+
+                        if time.time() - start_time > max_duration:
+                            logger.error(f"Превышено время выполнения чтения для {ip}.")
+                            break
 
                         # Задержка между опросами одного устройства
                         time.sleep(config["machine_interval"])
@@ -277,6 +295,7 @@ def process_modbus_data():
 
             # Пауза между полными циклами опроса
             logger.info("Ожидание следующего цикла...")
+            notify_server()
             time.sleep(config["polling_interval"])  # Задержка между циклами
 
     except KeyboardInterrupt:

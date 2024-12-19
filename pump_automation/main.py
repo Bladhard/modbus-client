@@ -1,110 +1,20 @@
-import logging
-from logging.handlers import TimedRotatingFileHandler
 import csv
 from pymodbus.client import ModbusTcpClient
 from pymodbus.exceptions import ModbusException
 import time
 from datetime import datetime
-import requests
-import json
+
 from bit import valid_addresses, register_bit_labels
+from tg_alarm import notify_server
+from overall_work import config, logger, send_request
+
 
 CSV_FILE = "modbus_data.csv"
 # "127.0.0.1"
 
 
-# Загрузка конфигурации из файла
-def load_config(config_file="config.json"):
-    try:
-        with open(config_file, "r") as f:
-            config = json.load(f)
-        return config
-    except Exception as e:
-        logger.error(f"Ошибка при загрузке конфигурационного файла: {e}")
-        return None
-
-
-# Настройка логирования
-# Настройка логирования
-def setup_logging(log_file, log_level):
-    """Настройка логгера с поддержкой ротации логов."""
-    # Уровни логирования
-    log_levels = {
-        "DEBUG": logging.DEBUG,
-        "INFO": logging.INFO,
-        "WARNING": logging.WARNING,
-        "ERROR": logging.ERROR,
-        "CRITICAL": logging.CRITICAL,
-    }
-
-    # Создаем основной логгер
-    logger = logging.getLogger(__name__)
-    logger.setLevel(log_levels.get(log_level, logging.INFO))
-
-    # Форматирование сообщений
-    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-
-    # Обработчик для консольного вывода
-    console_handler = logging.StreamHandler()
-    console_handler.setFormatter(formatter)
-
-    # Обработчик для ротации логов
-    file_handler = TimedRotatingFileHandler(
-        filename=log_file,  # Имя файла логов
-        when="W0",  # Ротация каждую неделю (понедельник)
-        interval=1,  # Интервал - одна неделя
-        backupCount=2,  # Хранить до 2 старых логов
-        encoding="utf-8",  # Кодировка для правильной записи
-    )
-    file_handler.setFormatter(formatter)
-
-    # Добавляем обработчики в логгер
-    logger.addHandler(console_handler)
-    logger.addHandler(file_handler)
-
-    return logger
-
-
-config = load_config()
-logger = setup_logging(config["log_file"], config["log_level"])
-
 data_server = config["server_url"]
 alarm_server = config["server_url_alarm"]
-
-
-# Функция отправки запроса на сервер для данных
-def send_request(url, data):
-    max_retries = 5
-    delay = 3  # задержка в секундах между попытками
-
-    for attempt in range(1, max_retries + 1):
-        try:
-            response = requests.post(
-                url, data=json.dumps(data), headers=config["headers"]
-            )
-
-            if response.status_code == 200:
-                logger.info(f"Данные успешно отправлены: {data}")
-                return True
-            else:
-                logger.error(
-                    f"Ошибка при отправке данных: {response.status_code} - {response.text}"
-                )
-
-        except requests.exceptions.Timeout:
-            logger.error("Тайм-аут при отправке запроса.")
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Ошибка при отправке запроса: {e}")
-
-        if attempt < max_retries:
-            logger.info(
-                f"Повторная попытка отправки ({attempt}/{max_retries}) через {delay} секунд..."
-            )
-            time.sleep(delay)
-        else:
-            logger.error("Превышено максимальное количество попыток отправки.")
-
-    return False
 
 
 def write_to_csv(register, value):
@@ -248,13 +158,30 @@ def process_modbus_data():
                         # Список адресов и количества регистров для опроса
                         addresses_to_read = []
 
-                        for request in config["request_settings"]:
-                            address = request["address"]
-                            count = request["count"]
-                            addresses_to_read.append((address, count))
-                            logger.info(
-                                f"Запланировано чтение {count} регистров с адреса {address} с {ip}"
+                        try:
+                            for request in config["request_settings"]:
+                                address = request.get("address")
+                                count = request.get("count")
+
+                                if address is None or count is None:
+                                    logger.error(f"Некорректный запрос: {request}")
+                                    continue
+
+                                addresses_to_read.append((address, count))
+                                logger.info(
+                                    f"Запланировано чтение {count} регистров с адреса {address} с {ip}"
+                                )
+                        except Exception as e:
+                            logger.error(
+                                f"Ошибка при подготовке адресов для чтения: {e}"
                             )
+
+                        if not client.is_socket_open():
+                            logger.warning(f"Соединение с {ip} потеряно. Пропуск.")
+                            continue
+
+                        start_time = time.time()
+                        max_duration = config["max_read_duration"]
                         # Опрос всех адресов за раз
                         read_modbus_data(
                             client,
@@ -263,6 +190,10 @@ def process_modbus_data():
                             delay=config.get("retry_delay", 5),
                             ip=ip,
                         )
+
+                        if time.time() - start_time > max_duration:
+                            logger.error(f"Превышено время выполнения чтения для {ip}.")
+                            break
 
                         # Задержка между опросами одного устройства
                         time.sleep(config["machine_interval"])
@@ -274,8 +205,24 @@ def process_modbus_data():
 
             # Пауза между полными циклами опроса
             logger.info("Ожидание следующего цикла...")
-            time.sleep(config["polling_interval"])  # Задержка между циклами
+            try:
+                notify_server()
+            except Exception as e:
+                logger.error(
+                    f"Ошибка при уведомлении сервера: {e}. Повторная попытка не будет выполнена."
+                )
 
+            polling_interval = config["polling_interval"]
+            if not isinstance(polling_interval, (int, float)) or polling_interval <= 0:
+                logger.error(
+                    f"Некорректное значение polling_interval: {polling_interval}. Установлено значение по умолчанию: 100."
+                )
+                polling_interval = 100
+            time.sleep(polling_interval)  # Задержка между циклами
+            # time.sleep(config["polling_interval"])  # Задержка между циклами
+
+    except Exception as e:
+        logger.error(f"Ошибка в основном цикле: {e}")
     except KeyboardInterrupt:
         logger.info("Опрос остановлен пользователем.")
     finally:
@@ -290,6 +237,11 @@ def process_modbus_data():
 def main():
     try:
         process_modbus_data()
+
+    except Exception as e:
+        logger.error(f"Ошибка в основном цикле: {e}")
+        time.sleep(10)  # Задержка перед повторной попыткой
+
     except KeyboardInterrupt:
         logger.info("Опрос остановлен пользователем.")
 
