@@ -49,7 +49,16 @@ def read_modbus_data(client, addresses, retries=3, delay=5, ip=None):
     ) in addresses:  # Адреса и количество регистров в виде списка кортежей
         for attempt in range(retries):
             try:
+                start_time = time.time()
+
                 response = client.read_holding_registers(address=address, count=count)
+
+                end_time = time.time()
+                execution_time = end_time - start_time
+                if execution_time > 5:
+                    logger.warning(
+                        f"Чтение {address} заняло {execution_time:.2f} секунд."
+                    )
 
                 if response.isError():
                     logger.error(
@@ -122,7 +131,7 @@ def process_modbus_data():
 
     # Создаем подключение для каждого IP и сохраняем в словарь
     for ip in config["modbus_servers"]:
-        client = ModbusTcpClient(ip, port=config["modbus_port"])
+        client = ModbusTcpClient(ip, port=config["modbus_port"], timeout=5)
         try:
             # Подключаемся к серверу
             connection = client.connect()
@@ -144,7 +153,9 @@ def process_modbus_data():
                 if client is None:  # Если клиент не был подключен
                     try:
                         logger.info(f"Проверка доступности сервера {ip}...")
-                        new_client = ModbusTcpClient(ip, port=config["modbus_port"])
+                        new_client = ModbusTcpClient(
+                            ip, port=config["modbus_port"], timeout=5
+                        )
                         connection = new_client.connect()
                         if connection:
                             logger.info(f"Соединение с сервером {ip} восстановлено.")
@@ -178,6 +189,7 @@ def process_modbus_data():
 
                         if not client.is_socket_open():
                             logger.warning(f"Соединение с {ip} потеряно. Пропуск.")
+                            client.close()
                             continue
 
                         start_time = time.time()

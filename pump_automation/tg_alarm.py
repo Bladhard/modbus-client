@@ -28,7 +28,5 @@ def notify_server():
         response = requests.post(API_URL_ALARM, json=payload, timeout=5)
         response.raise_for_status()
         logger.info(f"Статус для {PROGRAM_NAME} отправлен.")
-        print(f"Статус для {PROGRAM_NAME} отправлен.")
     except Exception as e:
         logger.error(f"Ошибка отправки статуса: {e}")
-        print(f"Ошибка отправки статуса: {e}")

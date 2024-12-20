@@ -5,11 +5,17 @@ pip install -r requirements.txt
 -------------------------------------------------------------------------------------
 
 Добавить в папку start_script.sh чтобы сразу активировать переменную среду
+И запустить перезагрузку скрипта каждые 3 часа restart_pm2.sh
+
+sudo apt install dos2unix
+dos2unix /home/aph/modbus-client/start_script.sh
+dos2unix /home/aph/modbus-client/restart_pm2.sh
 
 Сделать файл исполняемым:
 chmod +x /home/aph/modbus-client/start_script.sh
 
-
+chmod +x /home/aph/modbus-client/restart_pm2.sh
+0 */3 * * * /home/aph/modbus-client/restart_pm2.sh
 
 -------------------------------------------------------------------------------------
 Запуск в фоновом режиме с помощью PM2
