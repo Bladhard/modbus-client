@@ -15,7 +15,7 @@ dos2unix /home/aph/modbus-client/restart_pm2.sh
 chmod +x /home/aph/modbus-client/start_script.sh
 
 chmod +x /home/aph/modbus-client/restart_pm2.sh
-0 */3 * * * /home/aph/modbus-client/restart_pm2.sh
+0 */1 * * * /home/aph/modbus-client/restart_pm2.sh
 
 -------------------------------------------------------------------------------------
 Запуск в фоновом режиме с помощью PM2

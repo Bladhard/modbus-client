@@ -16,6 +16,7 @@ def load_config(config_file="config.json"):
         logger.error(f"Ошибка при загрузке конфигурационного файла: {e}")
         return None
 
+
 # Настройка логирования
 def setup_logging(log_file, log_level):
     """Настройка логгера с поддержкой ротации логов."""
@@ -64,7 +65,7 @@ def send_request(url, data):
     for attempt in range(1, max_retries + 1):
         try:
             response = requests.post(
-                url, data=json.dumps(data), headers=config["headers"]
+                url, data=json.dumps(data), headers=config["headers"], timeout=5
             )
 
             if response.status_code == 200:
@@ -89,6 +90,7 @@ def send_request(url, data):
             logger.error("Превышено максимальное количество попыток отправки.")
 
     return False
+
 
 config = load_config()
 logger = setup_logging(config["log_file"], config["log_level"])

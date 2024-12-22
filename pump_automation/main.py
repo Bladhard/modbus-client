@@ -1,36 +1,37 @@
-import csv
 from pymodbus.client import ModbusTcpClient
 from pymodbus.exceptions import ModbusException
 import time
-from datetime import datetime
 
 from bit import valid_addresses, register_bit_labels
 from tg_alarm import notify_server
 from overall_work import config, logger, send_request
 
 
-CSV_FILE = "modbus_data.csv"
-# "127.0.0.1"
-
-
 data_server = config["server_url"]
 alarm_server = config["server_url_alarm"]
 
+# Ограничение на общее время выполнения цикла
+MAX_CYCLE_TIME = config["max_cycle_time"]
 
-def write_to_csv(register, value):
-    """Запись данных в CSV файл с временем."""
-    try:
-        # Получаем текущее время
-        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        with open(CSV_FILE, mode="a", newline="") as file:
-            writer = csv.writer(file)
-            writer.writerow(
-                [current_time, register, value]
-            )  # Добавляем время, регистр и значение
-        logger.info(f"Записано в CSV: {current_time} {register} = {value}")
-    except Exception as e:
-        logger.error(f"Ошибка при записи в CSV: {e}")
+def validate_config(config):
+    """Проверяет корректность конфигурации."""
+    required_keys = [
+        "modbus_servers",
+        "modbus_port",
+        "request_settings",
+        "polling_interval",
+    ]
+    for key in required_keys:
+        if key not in config:
+            raise ValueError(f"Отсутствует обязательный параметр конфигурации: {key}")
+    if (
+        not isinstance(config["polling_interval"], (int, float))
+        or config["polling_interval"] <= 0
+    ):
+        raise ValueError(
+            f"Некорректное значение polling_interval: {config['polling_interval']}"
+        )
 
 
 def convert_to_signed(value):
@@ -42,7 +43,7 @@ def read_modbus_data(client, addresses, retries=3, delay=5, ip=None):
     """Чтение данных Modbus с накоплением и отправкой в один пакет."""
     collected_data = {}  # Словарь для накопления данных
     collected_alarm = {}  # Словарь для накопления данных
-
+    logger.info(f"Производится чтение данных с IP-адреса {ip}")
     for (
         address,
         count,
@@ -72,10 +73,12 @@ def read_modbus_data(client, addresses, retries=3, delay=5, ip=None):
 
                     if address in valid_addresses:
                         response_bits = client.read_coils(address=address, count=16)
-                        bits = response_bits.bits[
-                            :16
-                        ]  # Массив значений битов (True/False)
-                        # print(f"Значение регистра R{address:03d}: {bits}")
+                        if not response_bits.isError():
+                            bits = response_bits.bits[:16]
+                        else:
+                            logger.error(f"Ошибка чтения битов с адреса {address}")
+                            continue
+
                         # print(f"Значение регистра R{address:03d}: {bits:016b}")
                         existing_alarms = {}
                         # Парсинг битовых данных
@@ -127,30 +130,29 @@ def read_modbus_data(client, addresses, retries=3, delay=5, ip=None):
 
 # Функция для работы с каждым IP-адресом
 def process_modbus_data():
-    clients = {}  # Словарь для хранения подключений
+    clients = {}
 
-    # Создаем подключение для каждого IP и сохраняем в словарь
     for ip in config["modbus_servers"]:
         client = ModbusTcpClient(ip, port=config["modbus_port"], timeout=5)
         try:
-            # Подключаемся к серверу
             connection = client.connect()
             if connection:
                 logger.info(f"Подключение к {ip} успешно.")
-                clients[ip] = client  # Сохраняем подключение в словарь
+                clients[ip] = client
             else:
                 logger.error(
                     f"Не удалось установить соединение с сервером {ip}. Пропуск."
                 )
-                clients[ip] = None  # Если не удалось подключиться, помечаем как None
+                clients[ip] = None
         except Exception as e:
             logger.error(f"Ошибка при подключении к {ip}: {e}. Пропуск.")
-            clients[ip] = None  # Если ошибка подключения, помечаем как None
+            clients[ip] = None
 
     try:
         while True:
+            cycle_start_time = time.time()
             for ip, client in clients.items():
-                if client is None:  # Если клиент не был подключен
+                if client is None:
                     try:
                         logger.info(f"Проверка доступности сервера {ip}...")
                         new_client = ModbusTcpClient(
@@ -159,33 +161,21 @@ def process_modbus_data():
                         connection = new_client.connect()
                         if connection:
                             logger.info(f"Соединение с сервером {ip} восстановлено.")
-                            clients[ip] = new_client  # Обновляем клиента
+                            clients[ip] = new_client
                         else:
                             logger.warning(f"Сервер {ip} по-прежнему недоступен.")
                     except Exception as e:
                         logger.error(f"Ошибка при повторном подключении к {ip}: {e}.")
-                else:  # Если клиент подключен
+                else:
                     try:
-                        # Список адресов и количества регистров для опроса
                         addresses_to_read = []
-
-                        try:
-                            for request in config["request_settings"]:
-                                address = request.get("address")
-                                count = request.get("count")
-
-                                if address is None or count is None:
-                                    logger.error(f"Некорректный запрос: {request}")
-                                    continue
-
-                                addresses_to_read.append((address, count))
-                                logger.info(
-                                    f"Запланировано чтение {count} регистров с адреса {address} с {ip}"
-                                )
-                        except Exception as e:
-                            logger.error(
-                                f"Ошибка при подготовке адресов для чтения: {e}"
-                            )
+                        for request in config["request_settings"]:
+                            address = request.get("address")
+                            count = request.get("count")
+                            if address is None or count is None:
+                                logger.error(f"Некорректный запрос: {request}")
+                                continue
+                            addresses_to_read.append((address, count))
 
                         if not client.is_socket_open():
                             logger.warning(f"Соединение с {ip} потеряно. Пропуск.")
@@ -193,8 +183,6 @@ def process_modbus_data():
                             continue
 
                         start_time = time.time()
-                        max_duration = config["max_read_duration"]
-                        # Опрос всех адресов за раз
                         read_modbus_data(
                             client,
                             addresses=addresses_to_read,
@@ -202,43 +190,36 @@ def process_modbus_data():
                             delay=config.get("retry_delay", 5),
                             ip=ip,
                         )
-
-                        if time.time() - start_time > max_duration:
+                        if time.time() - start_time > config.get(
+                            "max_read_duration", 60
+                        ):
                             logger.error(f"Превышено время выполнения чтения для {ip}.")
-                            break
+                            continue
 
-                        # Задержка между опросами одного устройства
                         time.sleep(config["machine_interval"])
-
                     except Exception as e:
                         logger.error(f"Ошибка при опросе {ip}: {e}.")
-                        logger.info("Попробуем переподключиться в следующий цикл.")
-                        clients[ip] = None  # Помечаем клиент как недоступный
+                        clients[ip] = None
 
-            # Пауза между полными циклами опроса
+            if time.time() - cycle_start_time > MAX_CYCLE_TIME:
+                logger.error(
+                    "Превышено максимальное время выполнения цикла. Прерывание."
+                )
+                break
+
             logger.info("Ожидание следующего цикла...")
             try:
                 notify_server()
             except Exception as e:
-                logger.error(
-                    f"Ошибка при уведомлении сервера: {e}. Повторная попытка не будет выполнена."
-                )
+                logger.error(f"Ошибка при уведомлении сервера: {e}.")
 
-            polling_interval = config["polling_interval"]
-            if not isinstance(polling_interval, (int, float)) or polling_interval <= 0:
-                logger.error(
-                    f"Некорректное значение polling_interval: {polling_interval}. Установлено значение по умолчанию: 100."
-                )
-                polling_interval = 100
-            time.sleep(polling_interval)  # Задержка между циклами
-            # time.sleep(config["polling_interval"])  # Задержка между циклами
+            time.sleep(config["polling_interval"])
 
     except Exception as e:
         logger.error(f"Ошибка в основном цикле: {e}")
     except KeyboardInterrupt:
         logger.info("Опрос остановлен пользователем.")
     finally:
-        # Закрытие всех подключений
         for ip, client in clients.items():
             if client:
                 client.close()
@@ -248,12 +229,13 @@ def process_modbus_data():
 # Основная функция
 def main():
     try:
+        validate_config(config)
         process_modbus_data()
-
+    except ValueError as e:
+        logger.error(f"Ошибка конфигурации: {e}")
     except Exception as e:
         logger.error(f"Ошибка в основном цикле: {e}")
-        time.sleep(10)  # Задержка перед повторной попыткой
-
+        time.sleep(10)
     except KeyboardInterrupt:
         logger.info("Опрос остановлен пользователем.")
 

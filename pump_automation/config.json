@@ -104,6 +104,7 @@
     "API_KEY": "Pump_Chegem",
     "log_file": "modbus_data.log",
     "log_level": "INFO",
+    "max_cycle_time": 60,
     "max_read_duration": 30,
     "polling_interval": 180,
     "machine_interval": 5
