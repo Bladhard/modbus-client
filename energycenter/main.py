@@ -1,34 +1,13 @@
-import csv
 from pymodbus.client import ModbusTcpClient
 from pymodbus.exceptions import ModbusException
 import time
-from datetime import datetime
 
 from tg_alarm import notify_server
 from overall_work import config, logger, send_request
 
-CSV_FILE = "modbus_data.csv"
-# "127.0.0.1"
-
 
 data_server = config["server_url"]
 alarm_server = config["server_url_alarm"]
-
-
-def write_to_csv(register, value):
-    """Запись данных в CSV файл с временем."""
-    try:
-        # Получаем текущее время
-        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-        with open(CSV_FILE, mode="a", newline="") as file:
-            writer = csv.writer(file)
-            writer.writerow(
-                [current_time, register, value]
-            )  # Добавляем время, регистр и значение
-        logger.info(f"Записано в CSV: {current_time} {register} = {value}")
-    except Exception as e:
-        logger.error(f"Ошибка при записи в CSV: {e}")
 
 
 def convert_to_signed(value):
