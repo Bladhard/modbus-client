@@ -1,127 +1,14 @@
-import logging
-from logging.handlers import TimedRotatingFileHandler
-import csv
 from pymodbus.client import ModbusTcpClient
 from pymodbus.exceptions import ModbusException
 import time
-from datetime import datetime
-import requests
-import json
 
 from tg_alarm import notify_server
+from overall_work import config, logger, send_request
 
-
-CSV_FILE = "modbus_data.csv"
-# "127.0.0.1"
-
-
-# Загрузка конфигурации из файла
-def load_config(config_file="config.json"):
-    try:
-        with open(config_file, "r") as f:
-            config = json.load(f)
-        return config
-    except Exception as e:
-        logger.error(f"Ошибка при загрузке конфигурационного файла: {e}")
-        return None
-
-
-# Настройка логирования
-def setup_logging(log_file, log_level):
-    """Настройка логгера с поддержкой ротации логов."""
-    # Уровни логирования
-    log_levels = {
-        "DEBUG": logging.DEBUG,
-        "INFO": logging.INFO,
-        "WARNING": logging.WARNING,
-        "ERROR": logging.ERROR,
-        "CRITICAL": logging.CRITICAL,
-    }
-
-    # Создаем основной логгер
-    logger = logging.getLogger(__name__)
-    logger.setLevel(log_levels.get(log_level, logging.INFO))
-
-    # Форматирование сообщений
-    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-
-    # Обработчик для консольного вывода
-    console_handler = logging.StreamHandler()
-    console_handler.setFormatter(formatter)
-
-    # Обработчик для ротации логов
-    file_handler = TimedRotatingFileHandler(
-        filename=log_file,  # Имя файла логов
-        when="W0",  # Ротация каждую неделю (понедельник)
-        interval=1,  # Интервал - одна неделя
-        backupCount=2,  # Хранить до 2 старых логов
-        encoding="utf-8",  # Кодировка для правильной записи
-    )
-    file_handler.setFormatter(formatter)
-
-    # Добавляем обработчики в логгер
-    logger.addHandler(console_handler)
-    logger.addHandler(file_handler)
-
-    return logger
-
-
-config = load_config()
-logger = setup_logging(config["log_file"], config["log_level"])
 
 data_server = config["server_url"]
 alarm_server = config["server_url_alarm"]
-
-
-# Функция отправки запроса на сервер для данных
-def send_request(url, data):
-    max_retries = 5
-    delay = 3  # задержка в секундах между попытками
-
-    for attempt in range(1, max_retries + 1):
-        try:
-            response = requests.post(
-                url, data=json.dumps(data), headers=config["headers"]
-            )
-
-            if response.status_code == 200:
-                logger.info(f"Данные успешно отправлены: {data}")
-                return True
-            else:
-                logger.error(
-                    f"Ошибка при отправке данных: {response.status_code} - {response.text}"
-                )
-
-        except requests.exceptions.Timeout:
-            logger.error("Тайм-аут при отправке запроса.")
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Ошибка при отправке запроса: {e}")
-
-        if attempt < max_retries:
-            logger.info(
-                f"Повторная попытка отправки ({attempt}/{max_retries}) через {delay} секунд..."
-            )
-            time.sleep(delay)
-        else:
-            logger.error("Превышено максимальное количество попыток отправки.")
-
-    return False
-
-
-def write_to_csv(register, value):
-    """Запись данных в CSV файл с временем."""
-    try:
-        # Получаем текущее время
-        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-        with open(CSV_FILE, mode="a", newline="") as file:
-            writer = csv.writer(file)
-            writer.writerow(
-                [current_time, register, value]
-            )  # Добавляем время, регистр и значение
-        logger.info(f"Записано в CSV: {current_time} {register} = {value}")
-    except Exception as e:
-        logger.error(f"Ошибка при записи в CSV: {e}")
+config_test = config["config_test"]
 
 
 def convert_to_signed(value):
@@ -143,9 +30,9 @@ def read_modbus_data(client, addresses, retries=3, delay=5, ip=None):
                 response = client.read_holding_registers(address=address, count=count)
 
                 if response.isError():
-                    logger.error(
-                        f"Ошибка при чтении регистров с адреса {address}: {response}"
-                    )
+                    # logger.error(
+                    #     f"Ошибка при чтении регистров с адреса {address}: {response}"
+                    # )
                     continue  # Попробуем снова, если была ошибка
                 else:
                     if ip:
@@ -231,11 +118,13 @@ def read_modbus_data(client, addresses, retries=3, delay=5, ip=None):
             )
 
     # После опроса всех адресов отправляем собранные данные
-    # print("Collected Data: ", collected_data)
-    # print("Collected Alarm: ", collected_alarm)
-    # Отправка данных на сервер
-    send_request(data_server, collected_data)
-    send_request(alarm_server, collected_alarm)
+    if config_test:
+        logger.info(f"Collected Data: {collected_data}")
+        logger.info(f"Collected Alarm: {collected_alarm}")
+    else:
+        # Отправка данных на сервер
+        send_request(data_server, collected_data)
+        send_request(alarm_server, collected_alarm)
 
 
 # Функция для работы с каждым IP-адресом
@@ -307,7 +196,16 @@ def process_modbus_data():
 
             # Пауза между полными циклами опроса
             logger.info("Ожидание следующего цикла...")
-            notify_server()
+            if config_test:
+                ...
+            else:
+                try:
+                    notify_server()
+                except Exception as e:
+                    logger.error(
+                        f"Ошибка при уведомлении сервера: {e}. Повторная попытка не будет выполнена."
+                    )
+
             time.sleep(config["polling_interval"])  # Задержка между циклами
 
     except KeyboardInterrupt:
@@ -323,6 +221,7 @@ def process_modbus_data():
 # Основная функция
 def main():
     try:
+        logger.info("Запуск опроса машин...")
         process_modbus_data()
     except KeyboardInterrupt:
         logger.info("Опрос остановлен пользователем.")

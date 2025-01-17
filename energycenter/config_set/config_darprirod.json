@@ -74,5 +74,6 @@
     "log_file": "modbus_data.log",
     "log_level": "INFO",
     "polling_interval": 120,
-    "machine_interval": 5
+    "machine_interval": 5,
+    "config_test": true
 }

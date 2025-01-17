@@ -67,7 +67,6 @@ def send_request(url, data):
             response = requests.post(
                 url, data=json.dumps(data), headers=config["headers"], timeout=5
             )
-
             if response.status_code == 200:
                 logger.info(f"Данные успешно отправлены: {data}")
                 return True

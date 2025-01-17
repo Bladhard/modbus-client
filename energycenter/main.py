@@ -8,6 +8,7 @@ from overall_work import config, logger, send_request
 
 data_server = config["server_url"]
 alarm_server = config["server_url_alarm"]
+config_test = config["config_test"]
 
 
 def convert_to_signed(value):
@@ -29,9 +30,9 @@ def read_modbus_data(client, addresses, retries=3, delay=5, ip=None):
                 response = client.read_holding_registers(address=address, count=count)
 
                 if response.isError():
-                    logger.error(
-                        f"Ошибка при чтении регистров с адреса {address}: {response}"
-                    )
+                    # logger.error(
+                    #     f"Ошибка при чтении регистров с адреса {address}: {response}"
+                    # )
                     continue  # Попробуем снова, если была ошибка
                 else:
                     if ip:
@@ -117,11 +118,13 @@ def read_modbus_data(client, addresses, retries=3, delay=5, ip=None):
             )
 
     # После опроса всех адресов отправляем собранные данные
-    # print("Collected Data: ", collected_data)
-    # print("Collected Alarm: ", collected_alarm)
-    # Отправка данных на сервер
-    send_request(data_server, collected_data)
-    send_request(alarm_server, collected_alarm)
+    if config_test:
+        logger.info(f"Collected Data: {collected_data}")
+        logger.info(f"Collected Alarm: {collected_alarm}")
+    else:
+        # Отправка данных на сервер
+        send_request(data_server, collected_data)
+        send_request(alarm_server, collected_alarm)
 
 
 # Функция для работы с каждым IP-адресом
@@ -193,12 +196,16 @@ def process_modbus_data():
 
             # Пауза между полными циклами опроса
             logger.info("Ожидание следующего цикла...")
-            try:
-                notify_server()
-            except Exception as e:
-                logger.error(
-                    f"Ошибка при уведомлении сервера: {e}. Повторная попытка не будет выполнена."
-                )
+            if config_test:
+                ...
+            else:
+                try:
+                    notify_server()
+                except Exception as e:
+                    logger.error(
+                        f"Ошибка при уведомлении сервера: {e}. Повторная попытка не будет выполнена."
+                    )
+
             time.sleep(config["polling_interval"])  # Задержка между циклами
 
     except KeyboardInterrupt:
@@ -214,6 +221,7 @@ def process_modbus_data():
 # Основная функция
 def main():
     try:
+        logger.info("Запуск опроса машин...")
         process_modbus_data()
     except KeyboardInterrupt:
         logger.info("Опрос остановлен пользователем.")
