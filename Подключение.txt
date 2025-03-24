@@ -1,0 +1,5 @@
+Сделать его исполняемым
+chmod +x start_project.sh
+
+Запустить скрипт
+./start_project.sh

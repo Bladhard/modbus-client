@@ -25,7 +25,6 @@ def load_config(config_file="config.json"):
 
 
 # Настройка логирования
-# Настройка логирования
 def setup_logging(log_file, log_level):
     """Настройка логгера с поддержкой ротации логов."""
     # Уровни логирования

@@ -1,0 +1,23 @@
+{
+    "serial_port": "COM4",
+    "baud_rate": 115200,
+    "slave_id": 16,
+    "request_settings": [
+        {
+            "address": 512,
+            "count": 2
+        }
+    ],
+    "server_url": "https://eco-system.tech/ovcher/api/litk/gate",
+    "server_url_alarm": "https://eco-system.tech/ovcher/api/litk/gate",
+    "headers": {
+        "x-access-token": "1000002",
+        "Content-Type": "application/json"
+    },
+    "API_URL_ALARM": "http://185.149.146.250:8050/update_status",
+    "PROGRAM_NAME": "Sanpropusk_OCH",
+    "API_KEY": "Sanpropusk_OCH",
+    "log_file": "modbus_data.log",
+    "log_level": "INFO",
+    "polling_interval": 60
+}

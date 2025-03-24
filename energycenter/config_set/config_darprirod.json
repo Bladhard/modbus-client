@@ -62,10 +62,10 @@
             "count": 4
         }
     ],
-    "server_url": "https://eco-system.tech/soldar/api/power/updateState",
-    "server_url_alarm": "https://eco-system.tech/soldar/api/power/updateAlarms",
+    "server_url": "https://eco-system.tech/dary/api/power/updateState",
+    "server_url_alarm": "https://eco-system.tech/dary/api/power/updateAlarms",
     "headers": {
-        "x-access-token": "1000001",
+        "x-access-token": "1000009",
         "Content-Type": "application/json"
     },
     "API_URL_ALARM": "http://185.149.146.250:8050/update_status",
@@ -75,5 +75,5 @@
     "log_level": "INFO",
     "polling_interval": 120,
     "machine_interval": 5,
-    "config_test": true
+    "config_test": false
 }

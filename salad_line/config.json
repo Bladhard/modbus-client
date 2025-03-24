@@ -1,0 +1,79 @@
+{
+    "modbus_servers": [
+        "127.0.0.1"
+    ],
+    "modbus_port": 502,
+    "request_settings": [
+        {
+            "address": 51,
+            "count": 1
+        },
+        {
+            "address": 53,
+            "count": 1
+        },
+        {
+            "address": 55,
+            "count": 1
+        },
+        {
+            "address": 57,
+            "count": 1
+        },
+        {
+            "address": 59,
+            "count": 1
+        },
+        {
+            "address": 61,
+            "count": 1
+        },
+        {
+            "address": 63,
+            "count": 1
+        },
+        {
+            "address": 65,
+            "count": 1
+        },
+        {
+            "address": 67,
+            "count": 1
+        },
+        {
+            "address": 69,
+            "count": 1
+        },
+        {
+            "address": 71,
+            "count": 1
+        },
+        {
+            "address": 73,
+            "count": 1
+        },
+        {
+            "address": 75,
+            "count": 1
+        },
+        {
+            "address": 77,
+            "count": 1
+        }
+    ],
+    "server_url": "https://eco-system.tech/chegem/api/pump/update",
+    "server_url_alarm": "https://eco-system.tech/soldar/api/power/updateAlarms",
+    "headers": {
+        "x-access-token": "1000001",
+        "Content-Type": "application/json"
+    },
+    "API_URL_ALARM": "http://185.149.146.250:8050/update_status",
+    "PROGRAM_NAME": "Pump_Chegem",
+    "API_KEY": "Pump_Chegem",
+    "log_file": "modbus_data.log",
+    "log_level": "INFO",
+    "max_cycle_time": 60,
+    "max_read_duration": 30,
+    "polling_interval": 180,
+    "machine_interval": 5
+}

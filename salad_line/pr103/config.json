@@ -1,0 +1,103 @@
+{
+    "serial_port": "COM4",
+    "baud_rate": 115200,
+    "slave_id": 16,
+    "request_settings": [
+        {
+            "address": 16384,
+            "count": 2
+        },
+        {
+            "address": 16386,
+            "count": 2
+        },
+        {
+            "address": 16388,
+            "count": 2
+        },
+        {
+            "address": 16390,
+            "count": 2
+        },
+        {
+            "address": 16392,
+            "count": 2
+        },
+        {
+            "address": 16394,
+            "count": 2
+        },
+        {
+            "address": 16396,
+            "count": 2
+        },
+        {
+            "address": 16398,
+            "count": 2
+        },
+        {
+            "address": 16400,
+            "count": 2
+        },
+        {
+            "address": 16402,
+            "count": 2
+        },
+        {
+            "address": 16404,
+            "count": 2
+        },
+        {
+            "address": 16406,
+            "count": 2
+        },
+        {
+            "address": 16408,
+            "count": 2
+        },
+        {
+            "address": 16410,
+            "count": 2
+        },
+        {
+            "address": 16412,
+            "count": 2
+        },
+        {
+            "address": 16414,
+            "count": 2
+        },
+        {
+            "address": 16416,
+            "count": 2
+        },
+        {
+            "address": 16418,
+            "count": 2
+        },
+        {
+            "address": 16420,
+            "count": 1
+        },
+        {
+            "address": 16422,
+            "count": 1
+        },
+        {
+            "address": 16424,
+            "count": 1
+        }
+    ],
+    "server_url": "https://eco-system.tech/krug/api/salat/update",
+    "server_url_alarm": "https://eco-system.tech/krug/api/salat/update",
+    "headers": {
+        "x-access-token": "1000002",
+        "Content-Type": "application/json"
+    },
+    "API_URL_ALARM": "http://185.149.146.250:8050/update_status",
+    "PROGRAM_NAME": "Saladline_KG",
+    "API_KEY": "Saladline_KG",
+    "log_file": "modbus_data.log",
+    "log_level": "INFO",
+    "polling_interval": 60
+}
