@@ -1,7 +1,10 @@
 {
     "serial_port": "COM4",
     "baud_rate": 115200,
-    "slave_id": 16,
+    "slave_ids": [
+        16,
+        17
+    ],
     "request_settings": [
         {
             "address": 512,

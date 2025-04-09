@@ -70,7 +70,7 @@ class DataQueueManager:
         """Сохранение данных в локальную базу (сериализация в JSON)."""
         try:
             timestamp = datetime.now().isoformat()
-            data_json = json.dumps(data, ensure_ascii=False)
+            data_json = json.dumps(data)
             with self.lock:
                 with sqlite3.connect(self.db_name, check_same_thread=False) as conn:
                     cursor = conn.cursor()
@@ -145,6 +145,7 @@ class DataQueueManager:
                     f"Повторная попытка отправки ({attempt}/{max_retries}) через {delay} секунд..."
                 )
                 time.sleep(delay)
+                delay *= 2  # Увеличиваем задержку в 2 раза
             else:
                 logger.error("Превышено максимальное количество попыток отправки.")
 

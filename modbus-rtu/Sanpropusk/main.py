@@ -22,7 +22,7 @@ def convert_to_signed(value):
 
 
 def read_modbus_data(client, addresses, slave_id):
-    """Чтение данных Modbus и отправка на сервер."""
+    """Чтение данных Modbus и отправка на сервер по конкретному slave_id."""
     collected_data = {}
 
     for address, count in addresses:
@@ -31,7 +31,9 @@ def read_modbus_data(client, addresses, slave_id):
                 address=address, count=count, slave=slave_id
             )
             if response.isError():
-                logger.error(f"Ошибка при чтении {address}: {response}")
+                logger.error(
+                    f"Ошибка при чтении {address} (slave {slave_id}): {response}"
+                )
                 continue
 
             for i, reg_value in enumerate(response.registers):
@@ -40,26 +42,29 @@ def read_modbus_data(client, addresses, slave_id):
                 )
 
         except ModbusException as e:
-            logger.error(f"Ошибка Modbus при чтении {address}: {e}")
+            logger.error(f"Modbus-ошибка при чтении {address} (slave {slave_id}): {e}")
 
-    # print(collected_data)
-    send_request(data_server, collected_data)
-    # send_request(data_server, collected_alarm)
+    # Формируем структуру данных с указанием slave_id
+    payload = {"slave_id": slave_id, "data": collected_data}
+
+    send_request(data_server, payload)
 
 
 def process_modbus_data():
-    """Основной цикл опроса."""
+    """Основной цикл опроса всех slave-устройств по очереди."""
     if not serial_client.connect():
         logger.error("Не удалось установить соединение по последовательному порту.")
         return
 
     try:
         while True:
-            unit_id = config["slave_id"]
+            slave_ids = config["slave_ids"]  # список: [1, 2, 3,...]
             addresses_to_read = [
                 (req["address"], req["count"]) for req in config["request_settings"]
             ]
-            read_modbus_data(serial_client, addresses_to_read, unit_id)
+
+            for unit_id in slave_ids:
+                read_modbus_data(serial_client, addresses_to_read, unit_id)
 
             notify_server()
             time.sleep(config["polling_interval"])
