@@ -1,0 +1,80 @@
+{
+    "modbus_servers": [
+        "192.168.1.203",
+        "192.168.1.204",
+        "192.168.1.205",
+        "192.168.1.206",
+        "192.168.1.207",
+        "192.168.1.208",
+        "192.168.1.214"
+    ],
+    "modbus_port": 502,
+    "request_settings": [
+        {
+            "address": 14,
+            "count": 1
+        },
+        {
+            "address": 15,
+            "count": 1
+        },
+        {
+            "address": 65,
+            "count": 4
+        },
+        {
+            "address": 72,
+            "count": 2
+        },
+        {
+            "address": 75,
+            "count": 25
+        },
+        {
+            "address": 101,
+            "count": 9
+        },
+        {
+            "address": 112,
+            "count": 1
+        },
+        {
+            "address": 116,
+            "count": 20
+        },
+        {
+            "address": 138,
+            "count": 2
+        },
+        {
+            "address": 142,
+            "count": 1
+        },
+        {
+            "address": 160,
+            "count": 4
+        },
+        {
+            "address": 170,
+            "count": 2
+        },
+        {
+            "address": 184,
+            "count": 4
+        }
+    ],
+    "server_url": "https://eco-system.tech/dary/api/power/updateState",
+    "server_url_alarm": "https://eco-system.tech/dary/api/power/updateAlarms",
+    "headers": {
+        "x-access-token": "1000009",
+        "Content-Type": "application/json"
+    },
+    "API_URL_ALARM": "http://185.149.146.250:8050/update_status",
+    "PROGRAM_NAME": "Energy_DarPrirod",
+    "API_KEY": "Energy_DarPrirod",
+    "log_file": "modbus_data.log",
+    "log_level": "INFO",
+    "polling_interval": 120,
+    "machine_interval": 5,
+    "config_test": false
+}

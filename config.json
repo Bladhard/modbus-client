@@ -17,7 +17,7 @@
             "count": 4
         }
     ],
-    "server_url": "https://eco-system.tech/soldar/api/power/updateState",
+    "server_url": "https://eco-system.tech/soldar/api/power/updateState2",
     "server_url_alarm": "https://eco-system.tech/soldar/api/power/updateAlarms",
     "headers": {
         "x-access-token": "1000001",

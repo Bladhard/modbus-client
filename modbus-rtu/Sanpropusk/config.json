@@ -1,5 +1,5 @@
 {
-    "serial_port": "COM4",
+    "serial_port": "/dev/ttyUSB0",
     "baud_rate": 115200,
     "slave_ids": [
         16,

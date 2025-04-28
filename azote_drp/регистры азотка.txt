@@ -1,0 +1,47 @@
+
+	davl_vod_1	AT	%MW100	:	INT	;
+	davl_vod_2	AT	%MW101	:	INT	;
+	
+	davl_azot_1	AT	%MW102	:	INT	;
+	davl_azot_2	AT	%MW103	:	INT	;
+	
+	uroven_vod_1	AT	%MW104	:	INT	;
+	uroven_vod_2	AT	%MW105	:	INT	;
+	
+	min_uroven_vod_1	AT	%MW106	:	INT	;
+	min_uroven_vod_2	AT	%MW107	:	INT	;
+	max_uroven_vod_1	AT	%MW108	:	INT	;
+	max_uroven_vod_2	AT	%MW109	:	INT	;
+	
+	min_dav_azot_1	AT	%MW110	:	INT	;
+	min_dav_azot_2	AT	%MW111	:	INT	;
+	max_dav_azot_1	AT	%MW112	:	INT	;
+	max_dav_azot_2	AT	%MW113	:	INT	;
+	
+
+	dav_urov_1_0 	AT	%MW120	:	INT:=200	;
+	dav_urov_1_100 	AT	%MW121	:	INT:=400	;
+	
+	dav_urov_2_0 	AT	%MW122	:	INT:=200	;
+	dav_urov_2_100 	AT	%MW123	:	INT:=400	;
+
+
+	alarm_rele 	AT	%MW136	:	INT:=3	;
+
+
+    sbros_avarii  	    AT	%MX10.0	:	BOOL	; 
+	avar_min_dav_azot_1 	AT	%MX10.1	:	BOOL	;	
+	avar_min_dav_azot_2 	AT	%MX10.2	:	BOOL	;	
+	avar_max_dav_azot_1 	AT	%MX10.3	:	BOOL	;	
+	avar_max_dav_azot_2 	AT	%MX10.4	:	BOOL	;
+	avar_min_uroven_vod_1   AT	%MX10.5	:	BOOL	;
+	avar_min_uroven_vod_2   AT	%MX10.6	:	BOOL	;
+	avar_max_uroven_vod_1   AT	%MX10.7	:	BOOL	;
+	avar_max_uroven_vod_2   AT	%MX10.8	:	BOOL	;
+    kl_azot_1              	AT	%MX10.9	:	BOOL	;
+	kl_azot_2              	AT	%MX10.10	:	BOOL	;
+	ALARM_OBS             	AT	%MX10.11	:	BOOL	;
+
+
+
+ip 40.0.6.10 либо 10.0.6.10

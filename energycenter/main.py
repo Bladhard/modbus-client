@@ -2,13 +2,24 @@ from pymodbus.client import ModbusTcpClient
 from pymodbus.exceptions import ModbusException
 import time
 
-from tg_alarm import notify_server
-from overall_work import config, logger, send_request
-
+from utils.tg_alarm import notify_server
+from utils.overall_work import config, logger
+from utils.DataQueueManager import DataQueueManager
 
 data_server = config["server_url"]
 alarm_server = config["server_url_alarm"]
 config_test = config["config_test"]
+
+
+# data.db и alarm.db обязательно называть таким образом для сервера приема
+qm_data = DataQueueManager(
+    db_name="data.db",
+    server_url=data_server,
+)
+qm_alarm = DataQueueManager(
+    db_name="alarm.db",
+    server_url=alarm_server,
+)
 
 
 def convert_to_signed(value):
@@ -20,6 +31,7 @@ def read_modbus_data(client, addresses, retries=3, delay=5, ip=None):
     """Чтение данных Modbus с накоплением и отправкой в один пакет."""
     collected_data = {}  # Словарь для накопления данных
     collected_alarm = {}  # Словарь для накопления данных
+    error_flag = False  # Флаг ошибки для текущего клиента
 
     for (
         address,
@@ -116,6 +128,7 @@ def read_modbus_data(client, addresses, retries=3, delay=5, ip=None):
             logger.error(
                 f"Не удалось получить данные с адреса {address} после {retries} попыток."
             )
+            error_flag = True  # Устанавливаем флаг ошибки для клиента
 
     # После опроса всех адресов отправляем собранные данные
     if config_test:
@@ -123,99 +136,121 @@ def read_modbus_data(client, addresses, retries=3, delay=5, ip=None):
         logger.info(f"Collected Alarm: {collected_alarm}")
     else:
         # Отправка данных на сервер
-        send_request(data_server, collected_data)
-        send_request(alarm_server, collected_alarm)
+        qm_data.save_to_db(collected_data)
+        qm_alarm.save_to_db(collected_alarm)
+
+    return error_flag  # Возвращаем флаг ошибки
 
 
-# Функция для работы с каждым IP-адресом
+def connect_to_modbus_server(ip, port):
+    """
+    Попытка подключения к Modbus-серверу.
+    Возвращает клиент при успешном подключении или None в случае неудачи.
+    """
+    try:
+        client = ModbusTcpClient(ip, port=port, timeout=10)
+        if client.connect():
+            logger.info(f"Соединение с {ip} успешно установлено.")
+            return client
+        else:
+            logger.warning(f"Не удалось установить соединение с сервером {ip}.")
+    except Exception as e:
+        logger.error(f"Ошибка при подключении к {ip}: {e}", exc_info=True)
+    return None
+
+
 def process_modbus_data():
-    clients = {}  # Словарь для хранения подключений
+    """
+    Основной цикл опроса Modbus-серверов.
+    Для каждого IP:
+      - Пытаемся установить соединение.
+      - Если соединение установлено – опрашиваем указанные адреса.
+      - При ошибках или отсутствии соединения – повторная попытка подключения.
+    """
+    # Инициализация словаря клиентов; ключи — IP-адреса, значения — объекты клиентов или None.
+    clients = {ip: None for ip in config["modbus_servers"]}
 
-    # Создаем подключение для каждого IP и сохраняем в словарь
-    for ip in config["modbus_servers"]:
-        client = ModbusTcpClient(ip, port=config["modbus_port"])
-        try:
-            # Подключаемся к серверу
-            connection = client.connect()
-            if connection:
-                logger.info(f"Подключение к {ip} успешно.")
-                clients[ip] = client  # Сохраняем подключение в словарь
-            else:
-                logger.error(
-                    f"Не удалось установить соединение с сервером {ip}. Пропуск."
-                )
-                clients[ip] = None  # Если не удалось подключиться, помечаем как None
-        except Exception as e:
-            logger.error(f"Ошибка при подключении к {ip}: {e}. Пропуск.")
-            clients[ip] = None  # Если ошибка подключения, помечаем как None
+    # Первоначальное подключение к каждому серверу
+    for ip in clients:
+        clients[ip] = connect_to_modbus_server(ip, config["modbus_port"])
 
     try:
         while True:
             for ip, client in clients.items():
-                if client is None:  # Если клиент не был подключен
-                    try:
-                        logger.info(f"Проверка доступности сервера {ip}...")
-                        new_client = ModbusTcpClient(ip, port=config["modbus_port"])
-                        connection = new_client.connect()
-                        if connection:
-                            logger.info(f"Соединение с сервером {ip} восстановлено.")
-                            clients[ip] = new_client  # Обновляем клиента
-                        else:
-                            logger.warning(f"Сервер {ip} по-прежнему недоступен.")
-                    except Exception as e:
-                        logger.error(f"Ошибка при повторном подключении к {ip}: {e}.")
-                else:  # Если клиент подключен
-                    try:
-                        # Список адресов и количества регистров для опроса
-                        addresses_to_read = []
-
-                        for request in config["request_settings"]:
-                            address = request["address"]
-                            count = request["count"]
-                            addresses_to_read.append((address, count))
-                            logger.info(
-                                f"Запланировано чтение {count} регистров с адреса {address} с {ip}"
-                            )
-
-                        # Опрос всех адресов за раз
-                        read_modbus_data(
-                            client,
-                            addresses=addresses_to_read,
-                            retries=config.get("retries", 3),
-                            delay=config.get("retry_delay", 5),
-                            ip=ip,
+                if client is None:
+                    # Попытка повторного подключения
+                    logger.info(
+                        f"Проверка доступности сервера {ip} для повторного подключения..."
+                    )
+                    new_client = connect_to_modbus_server(ip, config["modbus_port"])
+                    if new_client is not None:
+                        logger.info(
+                            f"Соединение с сервером {ip} восстановлено, выполняем опрос."
                         )
+                        clients[ip] = new_client
+                        client = (
+                            new_client  # сразу используем восстановленное соединение
+                        )
+                    else:
+                        logger.warning(f"Сервер {ip} по-прежнему недоступен.")
+                        continue  # переходим к следующему серверу
 
-                        # Задержка между опросами одного устройства
-                        time.sleep(config["machine_interval"])
-
-                    except Exception as e:
-                        logger.error(f"Ошибка при опросе {ip}: {e}.")
-                        logger.info("Попробуем переподключиться в следующий цикл.")
-                        clients[ip] = None  # Помечаем клиент как недоступный
-
-            # Пауза между полными циклами опроса
-            logger.info("Ожидание следующего цикла...")
-            if config_test:
-                ...
-            else:
+                # Если соединение установлено, выполняем опрос
                 try:
-                    notify_server()
-                except Exception as e:
-                    logger.error(
-                        f"Ошибка при уведомлении сервера: {e}. Повторная попытка не будет выполнена."
+                    # Формирование списка адресов и количества регистров для опроса
+                    addresses_to_read = [
+                        (req["address"], req["count"])
+                        for req in config["request_settings"]
+                    ]
+                    logger.info(f"Чтение данных с {ip}: {addresses_to_read}")
+
+                    error_flag = read_modbus_data(
+                        client,
+                        addresses=addresses_to_read,
+                        retries=config.get("retries", 3),
+                        delay=config.get("retry_delay", 5),
+                        ip=ip,
                     )
 
-            time.sleep(config["polling_interval"])  # Задержка между циклами
+                    if error_flag:
+                        logger.warning(
+                            f"Ошибки при работе с сервером {ip}. Переподключение..."
+                        )
+                        client.close()
+                        clients[ip] = None
+
+                    # Задержка между опросами одного устройства
+                    time.sleep(config["machine_interval"])
+
+                except Exception as e:
+                    logger.error(f"Ошибка при опросе {ip}: {e}", exc_info=True)
+                    if client:
+                        client.close()
+                        logger.info(f"Соединение с {ip} закрыто из-за ошибки.")
+                    clients[ip] = None
+
+            logger.info("Ожидание следующего цикла опроса...")
+            try:
+                notify_server()
+            except Exception as e:
+                logger.error(
+                    f"Ошибка при уведомлении сервера: {e}. Повторная попытка не будет выполнена.",
+                    exc_info=True,
+                )
+            time.sleep(config["polling_interval"])
 
     except KeyboardInterrupt:
         logger.info("Опрос остановлен пользователем.")
     finally:
-        # Закрытие всех подключений
         for ip, client in clients.items():
             if client:
-                client.close()
-                logger.info(f"Соединение с {ip} закрыто.")
+                try:
+                    client.close()
+                    logger.info(f"Закрыто соединение для клиента {ip}.")
+                except Exception as e:
+                    logger.error(
+                        f"Ошибка при закрытии клиента {ip}: {e}", exc_info=True
+                    )
 
 
 # Основная функция

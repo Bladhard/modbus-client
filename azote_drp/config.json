@@ -1,0 +1,39 @@
+{
+    "modbus_servers": [
+        "40.0.6.51"
+    ],
+    "modbus_port": 502,
+    "request_settings": [
+        {
+            "address": 100,
+            "count": 14
+        },
+        {
+            "address": 120,
+            "count": 4
+        },
+        {
+            "address": 136,
+            "count": 1
+        },
+        {
+            "address": 10,
+            "count": 1
+        }
+    ],
+    "server_url": "https://eco-system.tech/dary/api/azot/update",
+    "server_url_alarm": "https://eco-system.tech/dary/api/azot/updateAlarms",
+    "headers": {
+        "x-access-token": "1000009",
+        "Content-Type": "application/json"
+    },
+    "API_URL_ALARM": "http://185.149.146.250:8050/update_status",
+    "PROGRAM_NAME": "Azote_DRP",
+    "API_KEY": "Azote_DRP",
+    "log_file": "modbus_data.log",
+    "log_level": "INFO",
+    "max_cycle_time": 60,
+    "max_read_duration": 30,
+    "polling_interval": 180,
+    "machine_interval": 5
+}

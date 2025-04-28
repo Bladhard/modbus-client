@@ -16,16 +16,16 @@ except io.UnsupportedOperation:
     pass
 
 # --- Константы и конфиг ---
-URL = "https://eco-system.tech/dary/api/power/updateState2"
-HOST = "192.168.123.10"
+URL = "https://eco-system.tech/krug/api/power/updateState?ec=1"
+HOST = "192.168.123.41"
 config = {"headers": {"x-access-token": "1000007", "Content-Type": "application/json"}}
-PROGRAM_NAME = "Energy_DarPrirod_2"
-API_KEY = "Energy_DarPrirod_2"
+PROGRAM_NAME = "Energy_KrugGod_1"
+API_KEY = "Energy_KrugGod_1"
 
 API_URL_ALARM = "http://185.149.146.250:8050/update_status"
 
 COOKIE_FILE = "cookie"
-PATH = "/webdef/0000W_A/scriptbib/rs/OPCData.asp"
+PATH = "/webdef/0000W_Z/scriptbib/rs/OPCData.asp"
 PARAMS = {"_method": "read", "_mtype": "execute", "pcount": "0"}
 CREATE_NO_WINDOW = 0x08000000
 
@@ -49,9 +49,14 @@ def save_cookie_to_file(cookie):
 def update_cookie_via_tshark(
     interface="Подключение по локальной сети 2", filter_ip=HOST, timeout=10
 ):
-    print("[*] Обновление cookie через tshark...")
+    logger.info("[*] Обновление cookie через tshark...")
+    tshark_path = "C:\\Program Files (x86)\\Wireshark\\tshark.exe"
+    if not os.path.exists(tshark_path):
+        logger.error("[!] tshark.exe не найден. Убедитесь, что Wireshark установлен.")
+        return None
+
     cmd = [
-        "F:\\Program Files (x86)\\Wireshark\\tshark.exe",
+        tshark_path,
         "-i",
         interface,
         "-Y",
@@ -71,14 +76,14 @@ def update_cookie_via_tshark(
             creationflags=CREATE_NO_WINDOW,
         )
         cookie_lines = result.strip().splitlines()
-        cookie = cookie_lines[1]
+        cookie = cookie_lines[1] if len(cookie_lines) > 1 else None
         if cookie:
-            print("[+] Новый cookie: {}".format(cookie))
+            logger.info("[+] Новый cookie: {}".format(cookie))
             save_cookie_to_file(cookie)
             return cookie
         raise Exception("Cookie не найден.")
     except Exception as e:
-        print("[!] Ошибка при захвате cookie: {}".format(e))
+        logger.error("[!] Ошибка при захвате cookie: {}".format(e))
         return None
 
 
@@ -118,11 +123,8 @@ def group_registers(data):
     mapping = {
         "M01": range(1, 20),
         "M02": range(20, 39),
-        "M09": range(39, 58),
-        "M10": range(58, 77),
-        "M11": range(77, 96),
-        "M12": range(96, 115),
-        "M13": range(115, 134),
+        "M03": range(39, 58),
+        "M04": range(58, 77),
     }
     result = {}
     for module, r_range in mapping.items():
@@ -140,7 +142,7 @@ def group_registers(data):
 def main_logic():
     cookie = read_cookie_from_file()
     response = make_request_with_cookie(cookie)
-    if response and len(response) >= 2000:
+    if response and len(response) >= 300:
         return extract_return_values(response)
     print("[!] Попытка обновления cookie...")
     new_cookie = update_cookie_via_tshark()
@@ -148,7 +150,7 @@ def main_logic():
         print("[x] Не удалось обновить cookie.")
         return None
     response = make_request_with_cookie(new_cookie)
-    if response and len(response) >= 2000:
+    if response and len(response) >= 300:
         return extract_return_values(response)
     return None
 
