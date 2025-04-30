@@ -3,11 +3,17 @@ from pymodbus.exceptions import ModbusException
 import time
 import struct
 
-from tg_alarm import notify_server
-from overall_work import config, logger, send_request
+from utils.tg_alarm import notify_server
+from utils.overall_work import config, logger
+from utils.DataQueueManager import DataQueueManager
 
 data_server = config["server_url"]
-alarm_server = config["server_url_alarm"]
+
+# data.db и alarm.db обязательно называть таким образом для сервера приема
+qm_data = DataQueueManager(
+    db_name="data.db",
+    server_url=data_server,
+)
 
 # Настройки Modbus по последовательному интерфейсу
 serial_client = ModbusSerialClient(
@@ -56,8 +62,8 @@ def read_modbus_data(client, addresses, slave_id):
         except ValueError as e:
             logger.error(f"Ошибка преобразования данных: {e}")
 
-    # print(collected_data)
-    send_request(data_server, collected_data)
+        # print(collected_data)
+        qm_data.save_to_db(collected_data)
 
 
 def process_modbus_data():

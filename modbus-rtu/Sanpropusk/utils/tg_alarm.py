@@ -1,20 +1,9 @@
 import requests
-import json
 import time
 
-
-# Загрузка конфигурации из файла
-def load_config(config_file="config.json"):
-    try:
-        with open(config_file, "r") as f:
-            config = json.load(f)
-        return config
-    except Exception as e:
-        print(f"Ошибка при загрузке конфигурационного файла: {e}")
-        return None
+from .overall_work import config, logger
 
 
-config = load_config()
 # Конфигурация клиента
 API_URL_ALARM = config["API_URL_ALARM"]
 PROGRAM_NAME = config["PROGRAM_NAME"]
@@ -32,7 +21,6 @@ def notify_server(max_retries: int = 3, backoff_factor: float = 0.5) -> bool:
     Returns:
         bool: True, если уведомление отправлено успешно, иначе False.
     """
-    from main import logger
 
     payload = {"program_name": PROGRAM_NAME, "api_key": API_KEY}
 

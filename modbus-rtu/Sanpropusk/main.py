@@ -1,13 +1,22 @@
 from pymodbus.client import ModbusSerialClient
 from pymodbus.exceptions import ModbusException
 import time
+import threading
 
+from utils.tg_alarm import notify_server
+from utils.overall_work import config, logger
+from utils.DataQueueManager import DataQueueManager
+from Telegram.bot import bot_start, monitoring_tank_tg
 
-from tg_alarm import notify_server
-from overall_work import config, logger, send_request
 
 data_server = config["server_url"]
 alarm_server = config["server_url_alarm"]
+
+
+qm_data = DataQueueManager(
+    db_name="data.db",
+    server_url=data_server,
+)
 
 # Настройки Modbus по последовательному интерфейсу
 serial_client = ModbusSerialClient(
@@ -47,7 +56,8 @@ def read_modbus_data(client, addresses, slave_id):
     # Формируем структуру данных с указанием slave_id
     payload = {"slave_id": slave_id, "data": collected_data}
 
-    send_request(data_server, payload)
+    monitoring_tank_tg(payload)
+    qm_data.save_to_db(payload)
 
 
 def process_modbus_data():
@@ -77,7 +87,10 @@ def process_modbus_data():
 
 def main():
     try:
-        process_modbus_data()
+        # Запускаем мониторинг в отдельном потоке
+        threading.Thread(target=process_modbus_data, daemon=True).start()
+
+        bot_start()
     except Exception as e:
         logger.error(f"Ошибка в основном цикле: {e}")
         time.sleep(10)
