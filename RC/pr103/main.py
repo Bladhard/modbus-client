@@ -2,12 +2,11 @@ from pymodbus.client import ModbusSerialClient
 from pymodbus.exceptions import ModbusException
 import time
 import struct
-import threading
 
+from register_data import register_data
 from utils.tg_alarm import notify_server
 from utils.overall_work import config, logger
 from utils.DataQueueManager import DataQueueManager
-from Telegram.bot import check_temperatures, bot_start
 
 data_server = config["server_url"]
 
@@ -37,37 +36,31 @@ def convert_registers_to_float(registers):
     return float_value
 
 
-def read_modbus_data(client, addresses, slave_id):
+def read_modbus_data(client, slave_id):
     """Чтение данных Modbus и отправка на сервер."""
     collected_data = {}
 
-    for address, count in addresses:
-        try:
-            response = client.read_holding_registers(
-                address=address, count=count, slave=slave_id
-            )
+    for group, lines in register_data.items():
+        collected_data[group] = {}
+        for line, address in lines.items():
+            try:
+                response = client.read_holding_registers(
+                    address=address, count=1, slave=slave_id
+                )
 
-            if response.isError():
-                logger.error(f"Ошибка при чтении {address}: {response}")
-                continue
+                if not response.isError():
+                    collected_data[group][line] = response.registers[0]
+                else:
+                    logger.error(
+                        f"Ошибка Modbus при чтении {address}: {response.isError()}"
+                    )
+                    collected_data[group][line] = 0
 
-            # Если данные — это float (два регистра)
-            if count == 2:
-                float_value = convert_registers_to_float(response.registers)
-                if float_value in (-9999.00, -9999999.00):
-                    float_value = 0.0
-                collected_data[f"R{address:03d}"] = f"{float_value:.2f}"
-            else:
-                # Обработка обычных 16-битных значений
-                for i, reg_value in enumerate(response.registers):
-                    collected_data[f"R{address + i:03d}"] = reg_value
-        except ModbusException as e:
-            logger.error(f"Ошибка Modbus при чтении {address}: {e}")
-        except ValueError as e:
-            logger.error(f"Ошибка преобразования данных: {e}")
+            except ModbusException as e:
+                logger.error(f"Ошибка Modbus при чтении {address}: {e}")
+            except ValueError as e:
+                logger.error(f"Ошибка преобразования данных: {e}")
 
-    # print(collected_data)
-    check_temperatures(collected_data)
     qm_data.save_to_db(collected_data)
 
 
@@ -80,10 +73,7 @@ def process_modbus_data():
     try:
         while True:
             unit_id = config["slave_id"]
-            addresses_to_read = [
-                (req["address"], req["count"]) for req in config["request_settings"]
-            ]
-            read_modbus_data(serial_client, addresses_to_read, unit_id)
+            read_modbus_data(serial_client, unit_id)
             try:
                 notify_server()
             except Exception as e:
@@ -99,13 +89,10 @@ def process_modbus_data():
 
 def main():
     try:
-        # Запускаем мониторинг в отдельном потоке
-        threading.Thread(target=process_modbus_data, daemon=True).start()
-
-        bot_start()
+        process_modbus_data()
     except Exception as e:
         logger.error(f"Ошибка в основном цикле: {e}")
-        time.sleep(10)
+        time.sleep(30)
 
 
 if __name__ == "__main__":

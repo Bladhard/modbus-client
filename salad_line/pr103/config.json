@@ -1,7 +1,7 @@
 {
-    "serial_port": "COM4",
-    "baud_rate": 115200,
-    "slave_id": 16,
+    "serial_port": "/dev/ttyUSB0",
+    "baud_rate": 9600,
+    "slave_id": 17,
     "request_settings": [
         {
             "address": 16384,
@@ -74,18 +74,6 @@
         {
             "address": 16418,
             "count": 2
-        },
-        {
-            "address": 16420,
-            "count": 1
-        },
-        {
-            "address": 16422,
-            "count": 1
-        },
-        {
-            "address": 16424,
-            "count": 1
         }
     ],
     "server_url": "https://eco-system.tech/krug/api/salat/update",

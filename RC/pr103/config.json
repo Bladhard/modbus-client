@@ -1,0 +1,16 @@
+{
+    "serial_port": "/dev/ttyUSB0",
+    "baud_rate": 9600,
+    "slave_id": 16,
+    "server_url": "https://eco-system.tech/pdm/api/dc/updateState",
+    "headers": {
+        "x-access-token": "1000002",
+        "Content-Type": "application/json"
+    },
+    "API_URL_ALARM": "http://185.149.146.250:8050/update_status",
+    "PROGRAM_NAME": "RC_PDM",
+    "API_KEY": "RC_PDM",
+    "log_file": "modbus_data.log",
+    "log_level": "INFO",
+    "polling_interval": 60
+}

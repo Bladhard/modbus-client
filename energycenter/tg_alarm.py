@@ -65,3 +65,46 @@ def notify_server(max_retries: int = 3, backoff_factor: float = 0.5) -> bool:
             time.sleep(wait_time)
 
     return False
+
+
+def start_periodic_notification(
+    interval_seconds: int = 300, max_retries: int = 3
+) -> None:
+    """
+    Запускает периодическую отправку уведомлений на сервер.
+
+    Args:
+        interval_seconds (int, optional): Интервал между отправками в секундах. По умолчанию 300 (5 минут).
+        max_retries (int, optional): Максимальное количество попыток отправки. По умолчанию 3.
+    """
+    from main import logger
+
+    logger.info(
+        f"Запуск периодической отправки уведомлений каждые {interval_seconds} секунд"
+    )
+
+    while True:
+        try:
+            success = notify_server(max_retries=max_retries)
+            if success:
+                logger.info(
+                    f"Уведомление отправлено успешно. Следующая отправка через {interval_seconds} секунд."
+                )
+            else:
+                logger.error("Не удалось отправить уведомление после всех попыток.")
+
+            time.sleep(interval_seconds)
+
+        except KeyboardInterrupt:
+            logger.info("Остановка периодической отправки уведомлений.")
+            break
+        except Exception as e:
+            logger.error(
+                f"Непредвиденная ошибка: {e}. Повторная попытка через {interval_seconds} секунд."
+            )
+            time.sleep(interval_seconds)
+
+
+if __name__ == "__main__":
+    # Пример использования
+    start_periodic_notification(interval_seconds=180)  # Отправка каждые 3 минуты

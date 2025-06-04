@@ -17,15 +17,14 @@ except io.UnsupportedOperation:
 
 # --- Константы и конфиг ---
 URL = "https://eco-system.tech/dary/api/power/updateState2"
-HOST = "192.168.123.10"
+HOST = "192.168.123.41"
 config = {"headers": {"x-access-token": "1000007", "Content-Type": "application/json"}}
-PROGRAM_NAME = "Energy_DarPrirod_2"
-API_KEY = "Energy_DarPrirod_2"
-
 API_URL_ALARM = "http://185.149.146.250:8050/update_status"
+PROGRAM_NAME = "Energy_DarPrirod_1"
+API_KEY = "Energy_DarPrirod_1"
 
 COOKIE_FILE = "cookie"
-PATH = "/webdef/0000W_A/scriptbib/rs/OPCData.asp"
+PATH = "/webdef/0000W_Z/scriptbib/rs/OPCData.asp"
 PARAMS = {"_method": "read", "_mtype": "execute", "pcount": "0"}
 CREATE_NO_WINDOW = 0x08000000
 
@@ -140,6 +139,7 @@ def group_registers(data):
 def main_logic():
     cookie = read_cookie_from_file()
     response = make_request_with_cookie(cookie)
+    print(response)
     if response and len(response) >= 2000:
         return extract_return_values(response)
     print("[!] Попытка обновления cookie...")
@@ -260,3 +260,4 @@ def loop_main():
 
 if __name__ == "__main__":
     loop_main()
+
