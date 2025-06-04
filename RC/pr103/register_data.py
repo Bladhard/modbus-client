@@ -84,7 +84,7 @@ register_data = {
         "line_5": 16402,
         "line_6": 16384,
         "line_7": 16401,
-        "line_8": None,
-        "line_9": None,
+        "line_8": 0,
+        "line_9": 0,
     },
 }
