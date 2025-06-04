@@ -43,17 +43,6 @@ register_data = {
         "line_8": 16415,
         "line_9": 16416,
     },
-    "stop_upakovki": {
-        "line_1": 16465,
-        "line_2": 16454,
-        "line_3": 16443,
-        "line_4": 16432,
-        "line_5": 16419,
-        "line_6": 16392,
-        "line_7": 16420,
-        "line_8": 16471,
-        "line_9": 16473,
-    },
     "Start_upakovki": {
         "line_1": 16466,
         "line_2": 16455,
