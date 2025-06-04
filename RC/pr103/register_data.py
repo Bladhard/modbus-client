@@ -76,4 +76,15 @@ register_data = {
         "line_8": 16390,
         "line_9": 16391,
     },
+    "Prostoy_sec": {
+        "line_1": 16459,
+        "line_2": 16448,
+        "line_3": 16437,
+        "line_4": 16426,
+        "line_5": 16402,
+        "line_6": 16384,
+        "line_7": 16401,
+        "line_8": None,
+        "line_9": None,
+    },
 }
